@@ -3,3 +3,8 @@ node_modules/
 .env
 .env.local
 *.pem
+*.log
+*.tsbuildinfo
+data/processed/*.sqlite*
+docs/proyecto/*.html
+docs/proyecto/baseline-*.json
