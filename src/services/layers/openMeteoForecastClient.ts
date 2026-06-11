@@ -6,15 +6,11 @@ import {
   clearOpenMeteoRateLimitState,
   type OpenMeteoRateLimitState,
 } from "@/lib/weatherStore";
-import { exec } from "child_process";
-import { promisify } from "util";
+import https from "https";
 
 export const HUESCAR_COORDINATES = { latitude: 37.811, longitude: -2.5412 } as const;
 
-export const OPEN_METEO_FORECAST_ENDPOINT =
-  process.env.NODE_ENV === "development"
-    ? "http://api.open-meteo.com/v1/forecast"
-    : "https://api.open-meteo.com/v1/forecast";
+export const OPEN_METEO_FORECAST_ENDPOINT = "https://api.open-meteo.com/v1/forecast";
 export const OPEN_METEO_COOLDOWN_MS = 15 * 60_000;
 export const OPEN_METEO_INMEMORY_TTL_MS = 10_000;
 
@@ -229,17 +225,43 @@ export function mapOpenMeteoPayload(raw: OpenMeteoRaw): WeatherPayload {
   };
 }
 
-async function curlFetch(url: string): Promise<string> {
-  const execAsync = promisify(exec);
-  const curlPath = "C:\\Windows\\System32\\curl.exe";
-  const { stdout, stderr } = await execAsync(
-    `"${curlPath}" -s -m 15 -k "${url}"`,
-    { timeout: 20000 }
-  );
-  if (stderr) {
-    console.error(`[OpenMeteo] curl stderr: ${stderr}`);
-  }
-  return stdout;
+const OPEN_METEO_AGENT = new https.Agent({
+  rejectUnauthorized: false,
+  minVersion: "TLSv1.2",
+  maxVersion: "TLSv1.3",
+});
+
+function httpsFetch(url: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Open-Meteo agotó el tiempo de conexión (10s)"));
+    }, 10_000);
+
+    const req = https.get(url, { agent: OPEN_METEO_AGENT, headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        clearTimeout(timeout);
+        if (res.statusCode && res.statusCode >= 400) {
+          const isRateLimit = res.statusCode === 429;
+          const error = `Open-Meteo respondió ${res.statusCode}`;
+          setOpenMeteoCooldown(error, isRateLimit).catch(() => {});
+          reject(new Error(error));
+          return;
+        }
+        resolve(data);
+      });
+      res.on("error", (e) => {
+        clearTimeout(timeout);
+        reject(e);
+      });
+    });
+
+    req.on("error", (e) => {
+      clearTimeout(timeout);
+      reject(e);
+    });
+  });
 }
 
 export async function fetchOpenMeteoForecast(
@@ -254,27 +276,12 @@ export async function fetchOpenMeteoForecast(
   const params = buildOpenMeteoParams(options);
   const url = `${OPEN_METEO_FORECAST_ENDPOINT}?${params}`;
 
-  let raw: string;
-  try {
-    raw = await curlFetch(url);
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : "curl failed";
-    console.error(`[OpenMeteo] curl error: ${msg}`);
-    throw new Error(msg);
-  }
+  const raw = await httpsFetch(url);
 
   let parsed: OpenMeteoRaw;
   try {
     parsed = JSON.parse(raw) as OpenMeteoRaw;
   } catch {
-    if (raw.includes("429")) {
-      await setOpenMeteoCooldown("Open-Meteo respondió 429", true);
-      throw new Error("Open-Meteo respondió 429");
-    }
-    if (raw.includes("502")) {
-      await setOpenMeteoCooldown("Open-Meteo respondió 502", false);
-      throw new Error("Open-Meteo respondió 502");
-    }
     throw new Error(`Open-Meteo devolvió JSON inválido: ${raw.substring(0, 200)}`);
   }
 
