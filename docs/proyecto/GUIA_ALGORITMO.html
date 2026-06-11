@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cómo se deducen los datos meteorológicos - Meteo Huéscar</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; line-height: 1.6; font-size: 11pt; max-width: 800px; margin: 0 auto; padding: 2cm; }
+  h1 { color: #1B3668; font-size: 22pt; border-bottom: 3px solid #C9A84C; padding-bottom: 8px; }
+  h2 { color: #1B3668; font-size: 15pt; border-left: 4px solid #C9A84C; padding-left: 12px; margin-top: 24px; }
+  h3 { color: #333; font-size: 12pt; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th { background: #1B3668; color: white; padding: 8px 12px; text-align: left; }
+  td { padding: 6px 12px; border-bottom: 1px solid #ddd; }
+  tr:nth-child(even) { background: #f8f9fa; }
+  blockquote { border-left: 4px solid #C9A84C; padding: 8px 16px; margin: 12px 0; background: #fafaf5; }
+  code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 10pt; }
+  pre { background: #1B3668; color: #d4d9e6; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-size: 9pt; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+  .footer { text-align: center; color: #888; font-size: 9pt; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 12px; }
+  .print-btn { position: fixed; top: 20px; right: 20px; background: #1B3668; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 11pt; }
+  .print-btn:hover { background: #2a4a8a; }
+  @media print { .print-btn { display: none; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">️ Guardar como PDF</button>
+<h1>🌤️ Cómo se deducen los datos meteorológicos en Meteo Huéscar</h1>
+<hr />
+<h2>📡 Las tres fuentes de datos</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Fuente</th>
+<th>Qué es</th>
+<th style="text-align: center;">Frecuencia</th>
+<th style="text-align: left;">Rol</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">️ <strong>AEMET 5051X</strong></td>
+<td>Estación meteorológica oficial en Huéscar</td>
+<td style="text-align: center;">Cada hora</td>
+<td style="text-align: left;"><strong>El ancla</strong>: dato real medido en el terreno</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>Open-Meteo</strong></td>
+<td>Modelo numérico del tiempo (forecast)</td>
+<td style="text-align: center;">Cada hora, predicción 7 días</td>
+<td style="text-align: left;"><strong>El contexto</strong>: predice qué viene, da tendencia</td>
+</tr>
+<tr>
+<td style="text-align: center;">🌾 <strong>RIA Puebla</strong></td>
+<td>Estación agrícola de la Junta de Andalucía</td>
+<td style="text-align: center;">1 vez/día, ~5 días de retraso</td>
+<td style="text-align: left;"><strong>La corrección</strong>: detecta sesgos del modelo</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>🔄 El proceso paso a paso</h2>
+<h3>Paso 1️⃣: Obtener los datos crudos</h3>
+<ul>
+<li><strong>AEMET</strong> → Se consulta la estación 5051X. Devuelve temperatura, humedad, viento, precipitación del momento actual.</li>
+<li><strong>Open-Meteo</strong> → Se consulta el modelo para las coordenadas de Huéscar. Devuelve predicción horaria (24h) y diaria (7 días).</li>
+</ul>
+<hr />
+<h3>Paso 2️⃣: Corregir la altitud</h3>
+<blockquote>
+<p>AEMET está a <strong>1.100 m</strong> de altitud. Huéscar ciudad está a <strong>~953 m</strong>.</p>
+</blockquote>
+<p>La temperatura baja <strong>~0,6°C por cada 100 m</strong> que subes. Como AEMET está más alto, su temperatura es más fría de lo que haría en el pueblo.</p>
+<pre><code>temp_huescar = temp_aemet + (1100 − 953) × 0,006
+</code></pre>
+<p><strong>Ejemplo</strong>: si AEMET mide <strong>22,0°C</strong> → en Huéscar serían <strong>~22,9°C</strong>.</p>
+<hr />
+<h3>Paso 3️⃣: Alinear en el tiempo</h3>
+<p>AEMET publica a las 10:00, 11:00, etc. Open-Meteo tiene datos cada hora exacta.</p>
+<p>Se busca la hora de Open-Meteo <strong>más cercana</strong> a la de AEMET para comparar manzanas con manzanas.</p>
+<hr />
+<h3>Paso 4️⃣: Fusionar (consenso)</h3>
+<p>Se hace una <strong>media ponderada</strong> de AEMET y Open-Meteo. <strong>No pesan igual</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th style="text-align: center;">Peso AEMET</th>
+<th style="text-align: center;">Peso Open-Meteo</th>
+<th>¿Por qué?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>️ Temperatura</td>
+<td style="text-align: center;"><strong>45%</strong></td>
+<td style="text-align: center;">35%</td>
+<td>AEMET mide real, el modelo estima</td>
+</tr>
+<tr>
+<td>💧 Humedad</td>
+<td style="text-align: center;"><strong>40%</strong></td>
+<td style="text-align: center;">35%</td>
+<td>Igual: medición real vale más</td>
+</tr>
+<tr>
+<td>💨 Viento</td>
+<td style="text-align: center;">35%</td>
+<td style="text-align: center;"><strong>40%</strong></td>
+<td>El modelo capta patrones espaciales</td>
+</tr>
+<tr>
+<td>️ Precipitación</td>
+<td style="text-align: center;">35%</td>
+<td style="text-align: center;"><strong>40%</strong></td>
+<td>El modelo ve nubes que la estación no</td>
+</tr>
+</tbody>
+</table>
+<pre><code>resultado = (AEMET × peso_AEMET × calidad + OpenMeteo × peso_OM × calidad) ÷ suma_pesos
+</code></pre>
+<hr />
+<h3>Paso 5️: Calcular la confianza</h3>
+<p>Se parte de <strong>92%</strong> (máximo teórico) y se resta por:</p>
+<table>
+<thead>
+<tr>
+<th>Penalización</th>
+<th>Cuándo se aplica</th>
+<th style="text-align: center;">Máximo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔥 Discrepancia térmica</td>
+<td>AEMET y Open-Meteo difieren en temperatura</td>
+<td style="text-align: center;">24 pts</td>
+</tr>
+<tr>
+<td>💧 Discrepancia humedad</td>
+<td>Difieren en humedad</td>
+<td style="text-align: center;">12 pts</td>
+</tr>
+<tr>
+<td>💨 Discrepancia viento</td>
+<td>Difieren en viento</td>
+<td style="text-align: center;">12 pts</td>
+</tr>
+<tr>
+<td>🌧️ Discrepancia precipitación</td>
+<td>Difieren en precipitación</td>
+<td style="text-align: center;">12 pts</td>
+</tr>
+<tr>
+<td>⏰ Antigüedad AEMET</td>
+<td>Dato tiene más de 30 min</td>
+<td style="text-align: center;">20 pts</td>
+</tr>
+<tr>
+<td>Desfase temporal</td>
+<td>Las horas no coinciden bien</td>
+<td style="text-align: center;">15 pts</td>
+</tr>
+<tr>
+<td>📉 Calidad de fuente</td>
+<td>AEMET viene de caché vieja</td>
+<td style="text-align: center;">10 pts</td>
+</tr>
+</tbody>
+</table>
+<pre><code>Confianza = max(20%, 92% − penalizaciones)
+</code></pre>
+<p><strong>Mínimo</strong>: 20% (nunca baja de ahí) · <strong>Máximo</strong>: 92%</p>
+<blockquote>
+<p><strong>Ejemplo real</strong>: diferencia de 0,6°C, 4 puntos de humedad, 35 min de antigüedad → <strong>confianza ~84%</strong>.</p>
+</blockquote>
+<hr />
+<h3>Paso 6️⃣: Detectar tormentas y alertas</h3>
+<p>Se revisan las <strong>24 horas futuras</strong> de Open-Meteo:</p>
+<table>
+<thead>
+<tr>
+<th>Condición</th>
+<th>Aviso</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>weatherCode ≥ 95</code></td>
+<td>⛈️ Tormenta eléctrica</td>
+</tr>
+<tr>
+<td>Probabilidad ≥ 60% + código tormenta</td>
+<td>🌩️ Tormenta</td>
+</tr>
+<tr>
+<td>Probabilidad ≥ 50% + precip ≥ 3 mm/h</td>
+<td>🌧️ Lluvia intensa</td>
+</tr>
+<tr>
+<td>Probabilidad ≥ 40% + precip ≥ 1 mm/h</td>
+<td>🌦️ Lluvia</td>
+</tr>
+<tr>
+<td>Viento ≥ 50 km/h</td>
+<td>💨 Viento fuerte</td>
+</tr>
+</tbody>
+</table>
+<p>Se calcula una <strong>puntuación</strong> combinando <strong>severidad + proximidad</strong> (la hora actual vale más que dentro de 6 horas). Se muestra el aviso <strong>más urgente</strong> al lado de la temperatura.</p>
+<hr />
+<h3>Paso 7️⃣: Estimar para otras localidades (comarca)</h3>
+<p>Para pueblos cercanos <strong>no hay estación AEMET</strong>. Se estima así:</p>
+<ol>
+<li><strong>Ancla</strong> → se toma el valor AEMET de Huéscar (dato real actual)</li>
+<li><strong>Delta espacial</strong> → se calcula cuánto difiere Open-Meteo entre Huéscar y cada pueblo</li>
+<li><strong>Corrección RIA</strong> → RIA Puebla tiene datos reales agrícolas. Se compara lo que RIA observó con lo que Open-Meteo predijo para ese día. La diferencia (sesgo) se aplica como corrección.</li>
+</ol>
+<p><strong>El peso de RIA decae con el tiempo</strong>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Antigüedad RIA</th>
+<th style="text-align: center;">Peso</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">0 días</td>
+<td style="text-align: center;"><strong>60%</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">3 días</td>
+<td style="text-align: center;"><strong>36%</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">5 días</td>
+<td style="text-align: center;"><strong>20%</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">8+ días</td>
+<td style="text-align: center;"><strong>0%</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code>estimación_pueblo = AEMET_actual + delta_espacial + corrección_RIA × peso_decaído
+</code></pre>
+<hr />
+<h3>Paso 7️⃣bis: Satélite Sentinel-2 (contexto geográfico)</h3>
+<blockquote>
+<p><strong>Estado actual</strong>: datos recopilados y almacenados, <strong>aún no usados en el algoritmo de fusión</strong>.</p>
+</blockquote>
+<p>Cada lunes a las 06:00 UTC se descarga automáticamente imagery <strong>Sentinel-2 L2A</strong> (Copernicus Data Space) para las 6 localidades de la comarca.</p>
+<p><strong>Qué se mide</strong> (3 radios: 1 km, 5 km, 15 km):</p>
+<table>
+<thead>
+<tr>
+<th>Indicador</th>
+<th>Qué significa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>️ % Vegetación (NDVI &gt; 0,25)</td>
+<td>Cobertura vegetal general</td>
+</tr>
+<tr>
+<td>🌲 % Vegetación densa (NDVI &gt; 0,55)</td>
+<td>Bosque o cultivo maduro</td>
+</tr>
+<tr>
+<td>💧 % Agua detectada</td>
+<td>Embalses, ríos, humedales</td>
+</tr>
+<tr>
+<td>☁️ % Nubes</td>
+<td>Calidad de la imagen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Para qué servirá</strong> (fase futura):
+- Zonas con más vegetación → retienen más humedad → corregir estimaciones de humedad
+- Zonas con agua cercana → efecto moderador de temperatura
+- Zonas con relieve complejo (Castril) → ajustar delta espacial
+- Clasificación de microclima: <code>VALLEY</code>, <code>PIEDMONT</code>, <code>MIXED_RELIEF</code></p>
+<p><strong>Datos actuales</strong> (ejemplo Castril, la localidad más verde):
+- Vegetación densa: <strong>71,6%</strong> en 1 km · <strong>62,5%</strong> en 15 km
+- Agua detectada: <strong>1,1%</strong> en 5 km (única localidad con agua clara)
+- Relieve: rango de <strong>905 m</strong> en 5 km (el más complejo)</p>
+<hr />
+<h3>Paso 8️: Calibración continua (aprendizaje)</h3>
+<p>Cada semana se compara <strong>RIA</strong> (dato real) con <strong>Open-Meteo Archive</strong> (lo que el modelo predijo para ese día). Se calcula el <strong>error medio absoluto (MAE)</strong> por variable.</p>
+<p>Este MAE se usa para ajustar las <strong>tolerancias</strong> del consenso: si históricamente Open-Meteo se equivoca 1,5°C en temperatura, se acepta esa discrepancia sin penalizar tanto la confianza.</p>
+<blockquote>
+<p>Con el tiempo, el sistema <strong>"aprende"</strong> cuánto confiar en cada fuente.</p>
+</blockquote>
+<hr />
+<h2>🗺️ Resumen visual</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    METEO HUÉSCAR                            │
+│                 Motor de fusión                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  🏛️ AEMET (real, hora) ──┐                                 │
+│                           ├──→ 🔧 Corrección altitud        │
+│  🌐 Open-Meteo (modelo) ─┘         ↓                        │
+│                              📊 Fusión ponderada            │
+│                                   ↓                         │
+│                              ✅ Consenso                    │
+│                                   │                         │
+│                    ┌──────────────┼──────────────┐          │
+│                    ↓              ↓              ↓          │
+│               🔢 Confianza   🚨 Alertas     🏘️ Comarca    │
+│               (penalizac.)   (tormentas)   (6 pueblos)     │
+│                                                             │
+│  🌾 RIA (real, diario) ──→  Corrección tendencia ──    │
+│                      └──→ 📈 Calibración MAE ────────┘    │
+│                                                             │
+│  🛰️ Sentinel-2 (semanal) ──→ ️ Perfiles geográficos     │
+│         (contexto, no afecta fusión aún)                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr />
+<h2>📊 Ejemplo práctico: un día de junio</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Hora</th>
+<th style="text-align: center;">AEMET</th>
+<th style="text-align: center;">Open-Meteo</th>
+<th style="text-align: center;">Consenso</th>
+<th style="text-align: center;">Confianza</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">10:00</td>
+<td style="text-align: center;">22,8°C</td>
+<td style="text-align: center;">23,4°C</td>
+<td style="text-align: center;"><strong>23,1°C</strong></td>
+<td style="text-align: center;">84%</td>
+</tr>
+<tr>
+<td style="text-align: center;">11:00</td>
+<td style="text-align: center;">24,1°C</td>
+<td style="text-align: center;">24,6°C</td>
+<td style="text-align: center;"><strong>24,4°C</strong></td>
+<td style="text-align: center;">87%</td>
+</tr>
+<tr>
+<td style="text-align: center;">12:00</td>
+<td style="text-align: center;">25,3°C</td>
+<td style="text-align: center;">25,8°C</td>
+<td style="text-align: center;"><strong>25,6°C</strong></td>
+<td style="text-align: center;">89%</td>
+</tr>
+<tr>
+<td style="text-align: center;">13:00</td>
+<td style="text-align: center;">26,7°C</td>
+<td style="text-align: center;">27,1°C</td>
+<td style="text-align: center;"><strong>26,9°C</strong></td>
+<td style="text-align: center;">91%</td>
+</tr>
+<tr>
+<td style="text-align: center;">14:00</td>
+<td style="text-align: center;">27,1°C</td>
+<td style="text-align: center;">27,5°C</td>
+<td style="text-align: center;"><strong>27,3°C</strong></td>
+<td style="text-align: center;">92%</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>A las 14:00, AEMET y Open-Meteo coinciden casi perfectamente → confianza máxima <strong>92%</strong>.</p>
+</blockquote>
+<hr />
+<h2>🏛️ Pueblos de la comarca</h2>
+<table>
+<thead>
+<tr>
+<th>Pueblo</th>
+<th style="text-align: center;">Distancia AEMET</th>
+<th style="text-align: center;">Estimación hoy</th>
+<th style="text-align: center;">Confianza</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>📍 Huéscar</td>
+<td style="text-align: center;">0,3 km</td>
+<td style="text-align: center;">27,3°C</td>
+<td style="text-align: center;"><strong>92%</strong></td>
+</tr>
+<tr>
+<td>Galera</td>
+<td style="text-align: center;">7,3 km</td>
+<td style="text-align: center;">27,1°C</td>
+<td style="text-align: center;"><strong>92%</strong></td>
+</tr>
+<tr>
+<td>📍 Orce</td>
+<td style="text-align: center;">11,3 km</td>
+<td style="text-align: center;">26,8°C</td>
+<td style="text-align: center;"><strong>91%</strong></td>
+</tr>
+<tr>
+<td>Castilléjar</td>
+<td style="text-align: center;">13,5 km</td>
+<td style="text-align: center;">26,5°C</td>
+<td style="text-align: center;"><strong>82%</strong></td>
+</tr>
+<tr>
+<td>📍 Puebla de Don Fadrique</td>
+<td style="text-align: center;">16,0 km</td>
+<td style="text-align: center;">25,9°C</td>
+<td style="text-align: center;"><strong>72%</strong></td>
+</tr>
+<tr>
+<td>📍 Castril</td>
+<td style="text-align: center;">20,9 km</td>
+<td style="text-align: center;">25,2°C</td>
+<td style="text-align: center;"><strong>51%</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Más lejos = menos confianza</strong>. Castril tiene el relieve más complejo y está más lejos.</p>
+</blockquote>
+<hr />
+<h2>En resumen</h2>
+<ol>
+<li><strong>AEMET</strong> da el dato real (ancla)</li>
+<li><strong>Open-Meteo</strong> da la predicción y el contexto espacial</li>
+<li><strong>RIA</strong> corrige sesgos estacionales del modelo</li>
+<li>Se <strong>fusionan</strong> con pesos por variable</li>
+<li>Se calcula <strong>confianza</strong> restando penalizaciones</li>
+<li>Se detectan <strong>alertas</strong> (tormentas, calor, viento)</li>
+<li>Se <strong>estima</strong> para pueblos cercanos</li>
+<li>Se <strong>calibra</strong> continuamente con datos históricos</li>
+<li><strong>Sentinel-2</strong> aporta contexto geográfico (vegetación, agua, relieve) → fase futura de ponderación</li>
+</ol>
+<hr />
+<p><em>Documento generado el 10 de junio de 2026 · Meteo Huéscar v0.1.0</em></p>
+</body>
+</html>

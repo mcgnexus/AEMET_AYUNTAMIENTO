@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #17352f;
+  --muted: #668078;
+  --paper: #f6f3eb;
+  --card: #fffdf8;
+  --line: #dfe6df;
+  --green: #176b55;
+  --lime: #b9d56a;
+  --orange: #e78b45;
+  --red: #c8574f;
+  --blue: #39788d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--font-manrope), Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; }
+
+.card {
+  background: rgba(255, 253, 248, .92);
+  border: 1px solid rgba(23, 107, 85, .12);
+  border-radius: 22px;
+  box-shadow: 0 12px 36px rgba(32, 68, 57, .07);
+}
+
+.eyebrow {
+  color: var(--green);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.metric-label {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.metric-value { font-size: 1.6rem; font-weight: 800; letter-spacing: -.06em; }
+.soft-grid { background-image: radial-gradient(rgba(23,107,85,.12) 1px, transparent 1px); background-size: 18px 18px; }
+
+@keyframes pulse-soft {
+  50% { opacity: .55; }
+}
+
+.loading-dot { animation: pulse-soft 1.2s ease-in-out infinite; }
