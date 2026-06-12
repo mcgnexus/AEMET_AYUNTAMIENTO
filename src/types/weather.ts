@@ -82,6 +82,27 @@ export type DailyWeather = {
   weatherCode: number[];
 };
 
+export type LightningStrike = {
+  lat: number;
+  lon: number;
+  time: string;
+  delayMs: number;
+  distanceKm: number;
+};
+
+export type LightningAlertLevel = "info" | "precaucion" | "alerta" | "peligro";
+
+export type LightningData = {
+  active: boolean;
+  level: LightningAlertLevel;
+  nearestStrikeKm: number | null;
+  strikeCount: number;
+  strikes: LightningStrike[];
+  lastCheckedAt: string;
+  source: "blitzortung" | "unavailable";
+  message: string;
+};
+
 export type WeatherPayload = {
   location: string;
   latitude: number;
@@ -99,4 +120,5 @@ export type WeatherPayload = {
   comparisonHourly: ComparisonHourlyWeather;
   daily: DailyWeather;
   alerts: WeatherAlert[];
+  lightning?: LightningData;
 };

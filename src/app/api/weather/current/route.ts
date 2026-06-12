@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { getFusedHuescarWeather } from "@/services/weatherService";
+import { getLightningData } from "@/services/lightningService";
 
 export async function GET() {
   try {
-    const weather = await getFusedHuescarWeather();
+    const [weather, lightning] = await Promise.all([
+      getFusedHuescarWeather(),
+      getLightningData().catch(() => undefined),
+    ]);
+
+    if (lightning) {
+      (weather as Record<string, unknown>)["lightning"] = lightning;
+    }
+
     const response = NextResponse.json(weather);
     response.headers.set(
       "Cache-Control",

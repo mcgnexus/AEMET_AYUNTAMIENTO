@@ -5,6 +5,7 @@ import { weatherLabel, detectStormHours, findImminentAlert } from "@/lib/weather
 import type { WeatherPayload } from "@/types/weather";
 import { HourlyTable } from "./HourlyTable";
 import { WeatherStationPanel } from "./WeatherStationPanel";
+import { LightningPanel } from "./LightningPanel";
 
 const fmt = (v: number | undefined | null, d = 0) => {
   if (v == null || Number.isNaN(v)) return "—";
@@ -330,6 +331,13 @@ export function WeatherDashboard() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Lightning Section */}
+      {"lightning" in data && (
+        <div className="mx-4 mb-2">
+          <LightningPanel data={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData} />
         </div>
       )}
 
