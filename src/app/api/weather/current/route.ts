@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getFusedHuescarWeather } from "@/services/weatherService";
 import { getLightningData } from "@/services/lightningService";
 import { getAemetWarnings } from "@/services/aemetWarningsService";
+import { calculateAgriculturalData } from "@/services/agriculturalService";
+import { calculateLivestockData } from "@/services/livestockService";
 
 export async function GET() {
   try {
@@ -18,6 +20,20 @@ export async function GET() {
     if (aemetWarnings.length > 0) {
       weather.alerts = [...aemetWarnings, ...weather.alerts];
     }
+
+    try {
+      const agri = calculateAgriculturalData(weather.hourly, weather.daily);
+      (weather as Record<string, unknown>)["agricultural"] = agri;
+    } catch {}
+
+    try {
+      const livestock = calculateLivestockData(
+        weather.hourly,
+        weather.current.temperatureC,
+        weather.current.humidityPct,
+      );
+      (weather as Record<string, unknown>)["livestock"] = livestock;
+    } catch {}
 
     const response = NextResponse.json(weather);
     response.headers.set(
@@ -74,6 +90,7 @@ export async function GET() {
         hourly: {
           time: [],
           temperatureC: [],
+          humidityPct: [],
           precipitationProbabilityPct: [],
           precipitationMm: [],
           weatherCode: [],

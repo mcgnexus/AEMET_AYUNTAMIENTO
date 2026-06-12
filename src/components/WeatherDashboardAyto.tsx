@@ -7,6 +7,7 @@ import type { WeatherPayload } from "@/types/weather";
 import { HourlyTable } from "./HourlyTable";
 import { WeatherStationPanel } from "./WeatherStationPanel";
 import { LightningPanel } from "./LightningPanel";
+import { AlertDropdown, AlertBadge, maxAlertSeverity } from "./AlertDropdown";
 
 const fmt = (v: number | undefined | null, d = 0) => {
   if (v == null || Number.isNaN(v)) return "—";
@@ -14,16 +15,6 @@ const fmt = (v: number | undefined | null, d = 0) => {
 };
 const day = (t: string) =>
   new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(new Date(`${t}T12:00`));
-
-function alertEmoji(type: string): string {
-  switch (type) {
-    case "helada": return "❄️";
-    case "calor": return "🔥";
-    case "viento": return "💨";
-    case "sequedad": return "🏜️";
-    default: return "⚠️";
-  }
-}
 
 function weatherEmoji(code: number | undefined | null): string {
   if (code == null) return "🌦️";
@@ -144,7 +135,6 @@ export function WeatherDashboardAyto() {
   const isCloudy = code >= 2 && code <= 48;
   const weatherIcon = isRain ? "rain" : isCloudy ? "cloud" : "sun";
   const hasAlerts = data.alerts.length > 0;
-  const alertSeverity = hasAlerts ? Math.max(...data.alerts.map(a => a.level === "severo" ? 3 : a.level === "peligro" ? 2 : 1)) : 0;
   const aemetSource = data.sources.find(s => s.source === "AEMET");
   const aemetAge = aemetSource ? aemetSource.dataAgeMinutes : null;
   const sourceOk = aemetSource?.status === "OK";
@@ -197,6 +187,12 @@ export function WeatherDashboardAyto() {
                 {fmt(c.temperatureC, 1)}
               </span>
               <span className="mt-2 text-lg font-medium text-[#C9A84C]">°C</span>
+              <div className="mt-3">
+                <AlertBadge
+                  alerts={data.alerts}
+                  lightning={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData | null | undefined}
+                />
+              </div>
             </div>
             <p className="mt-0.5 text-sm font-medium text-[#666]">{weatherLabel(code)}</p>
           </div>
@@ -229,12 +225,12 @@ export function WeatherDashboardAyto() {
         ))}
       </div>
 
-      {/* Alerts */}
-      {hasAlerts && (
-        <div className={`mx-4 my-3 rounded px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.05em] ${alertSeverity >= 2 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-800"}`}>
-          {data.alerts.map(a => a.title).join(" · ")}
-        </div>
-      )}
+      {/* Alerts dropdown */}
+      <AlertDropdown
+        alerts={data.alerts}
+        lightning={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData | null | undefined}
+        variant="ayto"
+      />
 
       {/* Storm alert - prominent */}
       {hasHourly && (() => {
@@ -274,15 +270,6 @@ export function WeatherDashboardAyto() {
               {hasDaily ? `${fmt(data.daily.temperatureMaxC[todayIdx])}° / ${fmt(data.daily.temperatureMinC[todayIdx])}°` : "—"}
             </p>
           </div>
-          {hasAlerts && (
-            <span className="ml-1 flex gap-0.5">
-              {data.alerts.map(a => (
-                <span key={a.type} title={a.title} className="text-sm leading-none">
-                  {alertEmoji(a.type)}
-                </span>
-              ))}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {hasDaily && data.daily.precipitationProbabilityPct[todayIdx] > 10 && (
@@ -320,12 +307,7 @@ export function WeatherDashboardAyto() {
         </div>
       )}
 
-      {/* Lightning Section */}
-      {"lightning" in data && (
-        <div className="mx-4 mb-2">
-          <LightningPanel data={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData} />
-        </div>
-      )}
+      <LightningPanel data={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData} />
 
       {/* Stations Section */}
       <div className="border-t border-[#e8e4d8] px-4 py-3">

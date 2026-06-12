@@ -56,6 +56,7 @@ export type SourceHealth = {
 export type HourlyWeather = {
   time: string[];
   temperatureC: number[];
+  humidityPct: number[];
   precipitationProbabilityPct: number[];
   precipitationMm: number[];
   weatherCode: number[];
@@ -103,6 +104,57 @@ export type LightningData = {
   message: string;
 };
 
+export type AgriculturalData = {
+  et0AccumulatedWeekMm: number;
+  et0AccumulatedMonthMm: number;
+  et0DailyMm: number[];
+  precipitationAccumulatedWeekMm: number;
+  precipitationAccumulatedMonthMm: number;
+  growingDegreeDays: number[];
+  gddAccumulated: number;
+  chillHours: number;
+  chillHoursPartial: number[];
+  frostRisk48h: FrostRisk[];
+  heatStressDays: number;
+  fieldWorkability: FieldWorkability[];
+};
+
+export type FrostRisk = {
+  date: string;
+  minTempC: number;
+  probability: "baja" | "media" | "alta" | "muy_alta";
+  hoursBelow0: number;
+};
+
+export type FieldWorkability = {
+  date: string;
+  workable: boolean;
+  reason: string;
+};
+
+export type LivestockData = {
+  thiCurrent: number;
+  thiHourly: ThiHourly[];
+  stressLevel: StressLevel;
+  stressLabel: string;
+  recommendation: string;
+  cattleAffected: CattleAffected;
+};
+
+export type ThiHourly = {
+  time: string;
+  thi: number;
+  stress: StressLevel;
+};
+
+export type StressLevel = "ninguno" | "leve" | "moderado" | "severo" | "peligroso";
+
+export type CattleAffected = {
+  dairy: boolean;
+  beef: boolean;
+  sheep: boolean;
+};
+
 export type WeatherPayload = {
   location: string;
   latitude: number;
@@ -121,4 +173,6 @@ export type WeatherPayload = {
   daily: DailyWeather;
   alerts: WeatherAlert[];
   lightning?: LightningData;
+  agricultural?: AgriculturalData;
+  livestock?: LivestockData;
 };

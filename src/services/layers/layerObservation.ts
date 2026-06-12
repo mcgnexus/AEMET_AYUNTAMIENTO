@@ -294,6 +294,7 @@ function buildAemetOnlyLayer(
     hourly: {
       time: [],
       temperatureC: [],
+      humidityPct: [],
       precipitationProbabilityPct: [],
       precipitationMm: [],
       weatherCode: [],

@@ -168,6 +168,7 @@ export async function getAggregatedWeather(
       hourly: {
         time: [],
         temperatureC: [],
+        humidityPct: [],
         precipitationProbabilityPct: [],
         precipitationMm: [],
         weatherCode: [],

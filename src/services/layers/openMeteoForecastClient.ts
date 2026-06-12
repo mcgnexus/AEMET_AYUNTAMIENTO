@@ -198,6 +198,7 @@ export function mapOpenMeteoPayload(raw: OpenMeteoRaw): WeatherPayload {
     hourly: {
       time: raw.hourly.time.slice(from, to),
       temperatureC: raw.hourly.temperature_2m.slice(from, to),
+      humidityPct: raw.hourly.relative_humidity_2m.slice(from, to),
       precipitationProbabilityPct: raw.hourly.precipitation_probability.slice(from, to),
       precipitationMm: raw.hourly.precipitation.slice(from, to),
       weatherCode: raw.hourly.weather_code.slice(from, to),
@@ -370,6 +371,7 @@ export function getHourlyWindow(raw: OpenMeteoRaw): { hourly: HourlyWeather; com
     hourly: {
       time: raw.hourly.time.slice(from, to),
       temperatureC: raw.hourly.temperature_2m.slice(from, to),
+      humidityPct: raw.hourly.relative_humidity_2m.slice(from, to),
       precipitationProbabilityPct: raw.hourly.precipitation_probability.slice(from, to),
       precipitationMm: raw.hourly.precipitation.slice(from, to),
       weatherCode: raw.hourly.weather_code.slice(from, to),

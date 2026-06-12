@@ -61,21 +61,23 @@ function StationCard({ station }: { station: StationData }) {
 
   if (!hasReading) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">📡</span>
-          <div>
-            <p className="text-[11px] font-bold text-slate-700">{station.name}</p>
-            <p className="text-[9px] text-slate-400">{station.locationName}</p>
+      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs">📡</span>
+            <div>
+              <p className="text-[10px] font-bold text-slate-700">{station.name}</p>
+              <p className="text-[8px] text-slate-400">{station.locationName}</p>
+            </div>
           </div>
+          <p className="text-[8px] text-slate-400">Sin datos</p>
         </div>
-        <p className="mt-2 text-[10px] text-slate-400">Sin datos recientes</p>
       </div>
     );
   }
 
   return (
-    <div className={`rounded-lg border p-3 ${
+    <div className={`rounded-lg border px-3 py-2.5 ${
       station.alerts.some(a => a.level === "peligro")
         ? "border-red-200 bg-red-50/50"
         : station.alerts.length > 0
@@ -85,10 +87,10 @@ function StationCard({ station }: { station: StationData }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm">📡</span>
+          <span className="text-xs">📡</span>
           <div>
-            <p className="text-[11px] font-bold text-slate-700">{station.name}</p>
-            <p className="text-[9px] text-slate-400">{station.locationName} · {station.crop}</p>
+            <p className="text-[10px] font-bold text-slate-700">{station.name}</p>
+            <p className="text-[8px] text-slate-400">{station.locationName} · {station.crop}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -107,60 +109,38 @@ function StationCard({ station }: { station: StationData }) {
 
       {/* Alerts */}
       {station.alerts.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="mt-1.5 flex flex-wrap gap-1">
           {station.alerts.map((a, i) => (
             <AlertBadge key={i} alert={a} />
           ))}
         </div>
       )}
 
-      {/* Main metrics */}
-      <div className="mt-2 grid grid-cols-3 gap-1.5">
-        <div className="rounded-md bg-slate-50 px-2 py-1.5 text-center">
-          <p className="text-[13px] font-bold leading-none text-slate-700">
+      {/* Metrics — prominent, same visual weight as AEMET */}
+      <div className="mt-2 grid grid-cols-3 gap-3 rounded-lg bg-slate-50 px-4 py-3">
+        <div className="text-center">
+          <p className="text-xl font-bold leading-none text-slate-800">
             {fmt(r.airTempC, 1)}°
           </p>
-          <p className="mt-0.5 text-[7px] font-semibold uppercase tracking-wider text-slate-400">Temp</p>
+          <p className="mt-1.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">Temperatura</p>
         </div>
-        <div className="rounded-md bg-slate-50 px-2 py-1.5 text-center">
-          <p className="text-[13px] font-bold leading-none text-slate-700">
-            {fmt(r.airHumidityPct)}%
+        <div className="text-center">
+          <p className="text-xl font-bold leading-none text-slate-800">
+            {fmt(r.airHumidityPct)}<span className="text-xs font-normal text-slate-400">%</span>
           </p>
-          <p className="mt-0.5 text-[7px] font-semibold uppercase tracking-wider text-slate-400">Humedad</p>
+          <p className="mt-1.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">Humedad</p>
         </div>
-        <div className="rounded-md bg-slate-50 px-2 py-1.5 text-center">
-          <p className="text-[13px] font-bold leading-none text-slate-700">
+        <div className="text-center">
+          <p className="text-xl font-bold leading-none text-slate-800">
             {fmt(r.pressureHpa, 0)}
           </p>
-          <p className="mt-0.5 text-[7px] font-semibold uppercase tracking-wider text-slate-400">hPa</p>
-        </div>
-      </div>
-
-      {/* Secondary metrics */}
-      <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-        {r.leafTempC != null && (
-          <div className="rounded-md bg-sky-50 px-2 py-1 text-center">
-            <p className="text-[11px] font-semibold text-sky-700">{fmt(r.leafTempC, 1)}°</p>
-            <p className="text-[7px] font-medium uppercase text-sky-400">Hoja</p>
-          </div>
-        )}
-        {r.soilMoisturePct != null && (
-          <div className="rounded-md bg-amber-50 px-2 py-1 text-center">
-            <p className="text-[11px] font-semibold text-amber-700">{fmt(r.soilMoisturePct, 0)}%</p>
-            <p className="text-[7px] font-medium uppercase text-amber-400">Suelo</p>
-          </div>
-        )}
-        <div className="rounded-md bg-slate-50 px-2 py-1 text-center">
-          <p className="text-[11px] font-semibold text-slate-600">
-            {r.batteryV != null ? `${fmt(r.batteryV, 2)}V` : "—"}
-          </p>
-          <p className="text-[7px] font-medium uppercase text-slate-400">Bat.</p>
+          <p className="mt-1.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">Presión hPa</p>
         </div>
       </div>
 
       {/* Comparison with AEMET */}
       {station.comparison.length > 0 && (
-        <div className="mt-2 rounded-md border border-slate-100 bg-slate-50/60 px-2 py-1.5">
+        <div className="mt-1.5 rounded-md border border-slate-100 bg-slate-50/60 px-2 py-1.5">
           <p className="mb-1 text-[8px] font-bold uppercase tracking-wider text-slate-400">
             vs AEMET
           </p>
@@ -224,28 +204,25 @@ export function WeatherStationPanel({ aemetCurrent = null }: WeatherStationPanel
     return (
       <div className="py-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm">📡</span>
-          <p className="text-[11px] font-bold text-slate-700">Estaciones</p>
+          <span className="text-xs">📡</span>
+          <p className="text-[10px] font-bold text-slate-700">Estaciones</p>
         </div>
-        <p className="mt-1 text-[9px] text-slate-400">{error}</p>
+        <p className="mt-1 text-[8px] text-slate-400">{error}</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Compact Header */}
       <div className="flex items-center gap-2">
-        <span className="text-sm">📡</span>
+        <span className="text-xs">📡</span>
         <div className="flex items-baseline gap-1">
-          <p className="text-[11px] font-bold text-slate-700">Estaciones Propias</p>
-          <p className="text-[9px] text-slate-400">
+          <p className="text-[10px] font-bold text-slate-700">Estaciones Propias</p>
+          <p className="text-[8px] text-slate-400">
             ({stations.length} activo{stations.length !== 1 ? "s" : ""})
           </p>
         </div>
       </div>
-
-      {/* Station cards */}
       {stations.map((s) => (
         <StationCard key={s.nodeCode} station={s} />
       ))}

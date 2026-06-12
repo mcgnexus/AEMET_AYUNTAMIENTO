@@ -6,6 +6,7 @@ import type { WeatherPayload } from "@/types/weather";
 import { HourlyTable } from "./HourlyTable";
 import { WeatherStationPanel } from "./WeatherStationPanel";
 import { LightningPanel } from "./LightningPanel";
+import { AlertDropdown, AlertBadge, maxAlertSeverity } from "./AlertDropdown";
 
 const fmt = (v: number | undefined | null, d = 0) => {
   if (v == null || Number.isNaN(v)) return "—";
@@ -13,16 +14,6 @@ const fmt = (v: number | undefined | null, d = 0) => {
 };
 const day = (t: string) =>
   new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(new Date(`${t}T12:00`));
-
-function alertEmoji(type: string): string {
-  switch (type) {
-    case "helada": return "❄️";
-    case "calor": return "🔥";
-    case "viento": return "💨";
-    case "sequedad": return "🏜️";
-    default: return "⚠️";
-  }
-}
 
 function weatherEmoji(code: number | undefined | null): string {
   if (code == null) return "🌦️";
@@ -143,7 +134,6 @@ export function WeatherDashboard() {
   const isCloudy = code >= 2 && code <= 48;
   const weatherIcon = isRain ? "rain" : isCloudy ? "cloud" : "sun";
   const hasAlerts = data.alerts.length > 0;
-  const alertSeverity = hasAlerts ? Math.max(...data.alerts.map(a => a.level === "severo" ? 3 : a.level === "peligro" ? 2 : 1)) : 0;
   const aemetSource = data.sources.find(s => s.source === "AEMET");
   const aemetAge = aemetSource ? aemetSource.dataAgeMinutes : null;
   const sourceOk = aemetSource?.status === "OK";
@@ -202,6 +192,10 @@ export function WeatherDashboard() {
                 {fmt(c.temperatureC, 1)}
               </span>
               <span className="text-xl font-light text-slate-400">°C</span>
+              <AlertBadge
+                alerts={data.alerts}
+                lightning={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData | null | undefined}
+              />
             </div>
             <p className="mt-2 text-[14px] font-medium leading-none text-slate-500">{weatherLabel(code)}</p>
           </div>
@@ -236,19 +230,11 @@ export function WeatherDashboard() {
         </div>
       </div>
 
-      {/* Alerts */}
-      {hasAlerts && (
-        <div className={`mx-4 mb-3 rounded-lg border px-3 py-2 ${alertSeverity >= 2 ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {data.alerts.map(a => (
-              <span key={a.type} className="flex items-center gap-1.5 text-[10px] font-medium">
-                <span className={`inline-block h-1.5 w-1.5 rounded-full ${a.level === "peligro" || a.level === "severo" ? "bg-red-500" : "bg-amber-500"}`} />
-                {a.title}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Alerts dropdown */}
+      <AlertDropdown
+        alerts={data.alerts}
+        lightning={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData | null | undefined}
+      />
 
       {/* Storm alert - prominent */}
       {hasHourly && (() => {
@@ -288,15 +274,6 @@ export function WeatherDashboard() {
               {hasDaily ? `${fmt(data.daily.temperatureMaxC[todayIdx])}° / ${fmt(data.daily.temperatureMinC[todayIdx])}°` : "—"}
             </p>
           </div>
-          {hasAlerts && (
-            <span className="ml-1 flex gap-0.5">
-              {data.alerts.map(a => (
-                <span key={a.type} title={a.title} className="text-sm leading-none">
-                  {alertEmoji(a.type)}
-                </span>
-              ))}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {hasDaily && data.daily.precipitationProbabilityPct[todayIdx] > 10 && (
@@ -334,12 +311,7 @@ export function WeatherDashboard() {
         </div>
       )}
 
-      {/* Lightning Section */}
-      {"lightning" in data && (
-        <div className="mx-4 mb-2">
-          <LightningPanel data={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData} />
-        </div>
-      )}
+      <LightningPanel data={(data as Record<string, unknown>).lightning as import("@/types/weather").LightningData} />
 
       {/* Stations Section */}
       <div className="border-t border-slate-100 px-4 py-3">

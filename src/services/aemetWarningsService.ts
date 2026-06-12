@@ -203,6 +203,8 @@ export async function getAemetWarnings(): Promise<WeatherAlert[]> {
       );
       const block = blockIdx >= 0 ? "<?xml" + relevantBlocks[blockIdx] : "";
 
+      if (alert.level === "verde") continue;
+
       if (!isRelevantForHuescar(alert, block)) continue;
 
       const expiresDate = new Date(alert.expires);

@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { ADMIN_COOKIE, verifyAdminSession } from "@/lib/adminAuth";
 import { getSourceMetrics } from "@/lib/weatherStore";
 import { getAggregatedWeather } from "@/services/weatherAggregator";
+import { getLightningData } from "@/services/lightningService";
+import { getAemetWarnings } from "@/services/aemetWarningsService";
 
 const algorithm = {
   currentConsensus: {
@@ -32,10 +34,35 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const [aggregated, metrics] = await Promise.all([
+    const [aggregated, metrics, lightning, aemetWarnings] = await Promise.all([
       getAggregatedWeather(),
       getSourceMetrics(),
+      getLightningData().catch(() => null),
+      getAemetWarnings().catch(() => []),
     ]);
+
+    const obs = aggregated.observation;
+    const hourly = obs?.hourly;
+    const daily = obs?.daily;
+
+    let agricultural = null;
+    let livestock = null;
+
+    if (hourly && obs?.consensus) {
+      try {
+        const { calculateAgriculturalData } = await import("@/services/agriculturalService");
+        agricultural = calculateAgriculturalData(hourly, daily ?? null);
+      } catch {}
+      try {
+        const { calculateLivestockData } = await import("@/services/livestockService");
+        livestock = calculateLivestockData(
+          hourly,
+          obs.consensus.temperatureC,
+          obs.consensus.humidityPct,
+        );
+      } catch {}
+    }
+
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
       weather: aggregated.observation,
@@ -45,6 +72,10 @@ export async function GET() {
       algorithm,
       availability: aggregated.availability,
       warnings: aggregated.warnings,
+      lightning,
+      aemetWarnings,
+      agricultural,
+      livestock,
       configuration: {
         aemetConfigured: Boolean(process.env.AEMET_API_KEY),
         sentinelHubConfigured: Boolean(
