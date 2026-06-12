@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 import { getFusedHuescarWeather } from "@/services/weatherService";
 import { getLightningData } from "@/services/lightningService";
+import { getAemetWarnings } from "@/services/aemetWarningsService";
 
 export async function GET() {
   try {
-    const [weather, lightning] = await Promise.all([
+    const [weather, lightning, aemetWarnings] = await Promise.all([
       getFusedHuescarWeather(),
       getLightningData().catch(() => undefined),
+      getAemetWarnings().catch(() => []),
     ]);
 
     if (lightning) {
       (weather as Record<string, unknown>)["lightning"] = lightning;
+    }
+
+    if (aemetWarnings.length > 0) {
+      weather.alerts = [...aemetWarnings, ...weather.alerts];
     }
 
     const response = NextResponse.json(weather);
